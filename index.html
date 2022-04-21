@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+    /* CSS goes here. */
+</style>
+
+<body>
+    <script src="//d3js.org/d3.v4.min.js" charset="utf-8"></script>
+    <script src="//d3js.org/topojson.v1.min.js"></script>
+    <style>
+        #map {
+            position: static;
+            height: 1000px;
+            width: 1000px;
+        }
+
+        .region {
+            stroke: black;
+            stroke-width: 1px;
+        }
+
+        .region-label {
+            font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+        }
+
+        .region-tooltip {
+            position: absolute;
+            visibility: hidden;
+            background-color: white;
+            padding: 10px;
+            font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+        }
+    </style>
+    <div id="map"></div>
+    <script>
+
+        var width = 1000,
+            height = 1000;
+
+        var identity = d3.geoIdentity().reflectY(true)
+        var path = d3.geoPath(identity)
+
+        var svg = d3.select("#map").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        d3.json("uk_regions_quantized-topo.json", function (error, uk) {
+            if (error) return console.error(error);
+
+            var regions = topojson.feature(uk, uk.objects.regions);
+
+            identity.fitSize([width, height], regions)
+
+            const data = {
+                "North East": {
+                    count: 10000,
+                    percentage: 20
+                },
+                "North West": {
+                    count: 15000,
+                    percentage: 25
+                },
+                "Yorkshire and The Humber": {
+                    count: 2000,
+                    percentage: 5
+                },
+                "East Midlands": {
+                    count: 3000,
+                    percentage: 10
+                },
+                "West Midlands": {
+                    count: 1000,
+                    percentage: 2
+                },
+                "East of England": {
+                    count: 5000,
+                    percentage: 20
+                },
+                "London": {
+                    count: 10000,
+                    percentage: 30
+                },
+                "South East": {
+                    count: 1000,
+                    percentage: 10
+                },
+                "South West": {
+                    count: 1000,
+                    percentage: 15
+                },
+                "Wales": {
+                    count: 1000,
+                    percentage: 20
+                },
+                "Scotland": {
+                    count: 1000,
+                    percentage: 8
+                },
+                "Northern Ireland": {
+                    count: 1000,
+                    percentage: 3
+                },
+            }
+
+            function getFillOpacity(percentage) {
+                console.log(percentage)
+                return `rgba(247,86,86,0.${percentage})`
+            }
+
+            svg.selectAll(".region")
+                .data(regions.features)
+                .enter().append("path")
+                .attr("class", function (d) { return "region " + d.properties.nuts118cd; })
+                .attr("fill", function (d) { return getFillOpacity(data[d.properties.nuts118nm].percentage) })
+                .attr("d", path)
+                .on("mouseover", function (d, i) {
+                    d3.select(".region-tooltip-" + d.properties.nuts118cd).style("visibility", "visible");
+                })
+                .on("mousemove", function (d, i) {
+                    d3.select(".region-tooltip-" + d.properties.nuts118cd).style("top", (event.pageY + 20) + "px").style("left", (event.pageX + 20) + "px");
+                })
+                .on("mouseout", function (d, i) {
+                    d3.select(".region-tooltip-" + d.properties.nuts118cd).style("visibility", "hidden");
+                });
+
+            svg.selectAll(".region-label")
+                .data(regions.features)
+                .enter().append("text")
+                .attr("class", function (d) { return "region-label region-label-" + d.properties.nuts118cd; })
+                .attr("transform", function (d) { return "translate(" + path.centroid(d) + ")"; })
+                .attr("dy", ".35em")
+                .attr("dx", "-30px")
+                .text(function (d) { return d.properties.nuts118nm; })
+                .on("mouseover", function (d, i) {
+                    d3.select(".region-tooltip-" + d.properties.nuts118cd).style("visibility", "visible");
+                })
+                .on("mousemove", function (d, i) {
+                    d3.select(".region-tooltip-" + d.properties.nuts118cd).style("top", (event.pageY + 20) + "px").style("left", (event.pageX + 20) + "px");
+                })
+                .on("mouseout", function (d, i) {
+                    d3.select(".region-tooltip-" + d.properties.nuts118cd).style("visibility", "hidden");
+                });
+
+            d3.select('#map').selectAll(".region-tooltip")
+                .data(regions.features)
+                .enter().append("div")
+                .attr("class", function (d) { return "region-tooltip region-tooltip-" + d.properties.nuts118cd; })
+                .html(function (d) { return `<p><strong>${d.properties.nuts118nm}</strong><br/>Properties sold: ${data[d.properties.nuts118nm].count}<br/>Accounting for ${data[d.properties.nuts118nm].percentage}% of total sales.</p>`; });
+        });
+
+    </script>
